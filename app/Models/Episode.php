@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Episode extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['podcast_id','title','description', 'duration', 'release_date'];
+    public function podcast(){
+        return $this->belongsTo(Podcast::class);
+    }
+}
