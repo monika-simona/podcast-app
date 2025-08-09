@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('duration')->nullable(); // opis u minutima
             $table->date('release_date')->nullable();
+            $table->string('audio_path'); //putanja do fajla
             $table->timestamps();
         });
     }
