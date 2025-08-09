@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Podcast;
 use Illuminate\Http\Request;
 
-class PodcastControler extends Controller
+class PodcastController extends Controller
 {
     /**
      * Display a listing of the resource.
