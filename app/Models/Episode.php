@@ -9,7 +9,7 @@ class Episode extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['podcast_id','title','description', 'duration', 'release_date'];
+    protected $fillable = ['podcast_id','title','description', 'duration', 'release_date', 'audio_path'];
     public function podcast(){
         return $this->belongsTo(Podcast::class);
     }

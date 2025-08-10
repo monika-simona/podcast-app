@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -49,4 +50,20 @@ class User extends Authenticatable
     public function podcasts(){
         return $this->hasMany(Podcast::class);
     }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isAuthor()
+    {
+        return $this->role === 'author';
+    }
+
+    public function isUser()
+    {
+        return $this->role === 'user';
+    }
+
 }
