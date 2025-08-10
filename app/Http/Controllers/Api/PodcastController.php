@@ -28,7 +28,7 @@ class PodcastController extends Controller
             'user_id' => 'required|exists:users,id',
         ]);
 
-        $podcast = Podcaste::create($validated);
+        $podcast = Podcast::create($validated);
 
         return response()->json($podcast,201);
 
