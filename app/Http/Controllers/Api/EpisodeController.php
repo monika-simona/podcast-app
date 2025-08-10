@@ -75,5 +75,12 @@ class EpisodeController extends Controller
 
         return response()->json(null, 204);
     }
-   
+
+
+   public function episodes($id)
+    {
+        $podcast = Podcast::findOrFail($id);
+        return response()->json($podcast->episodes);
+    }
+
 }
