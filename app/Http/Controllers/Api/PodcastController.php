@@ -22,13 +22,20 @@ class PodcastController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()->role !== 'author' && auth()->user()->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'user_id' => 'required|exists:users,id',
         ]);
 
-        $podcast = Podcast::create($validated);
+        $podcast = Podcast::create([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'user_id' => auth()->id(), // vlasnik je prijavljeni korisnik
+        ]);
 
         return response()->json($podcast,201);
 
@@ -48,10 +55,13 @@ class PodcastController extends Controller
      */
     public function update(Request $request, Podcast $podcast)
     {
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $podcast->user_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'user_id' => 'sometimes|required|exists:users,id',
         ]);
 
         $podcast->update($validated);
@@ -64,6 +74,10 @@ class PodcastController extends Controller
      */
     public function destroy(Podcast $podcast)
     {
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $podcast->user_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
         $podcast->delete();
 
         return response()->json(null, 204);

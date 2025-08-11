@@ -50,6 +50,11 @@ class UserController extends Controller
     public function update(Request $request, string $id)
     {
         $user = User::findOrFail($id);
+        
+        if (auth()->id() !== $user->id && auth()->user()->role !== 'admin') 
+        {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $validated = $request->validate([
             'name'=>'string|max:255',
@@ -76,6 +81,11 @@ class UserController extends Controller
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
+
+        if (auth()->id() !== $user->id && auth()->user()->role !== 'admin') 
+        {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
         $user->delete();
 
         return response()->json(null, 204);

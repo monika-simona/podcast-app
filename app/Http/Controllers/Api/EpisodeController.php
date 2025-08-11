@@ -15,21 +15,34 @@ class EpisodeController extends Controller
     
     public function store(Request $request){
 
-        $request->validate([
+        if (auth()->user()->role !== 'author' && auth()->user()->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'podcast_id'=> 'required|exists:podcasts,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'audio' => 'required|mimes:mp3,wav|max:20480', // max 20MB
-            'podcast_id' => 'required|exists:podcasts,id',
+            'duration' => 'required|integer|min:1',
+            'release_date' => 'required|date',
+            'audio' => 'required|mimes:mp3,wav|max:20480'
         ]);
+
+        $podcast = Podcast::findOrFail($validated['podcast_id']);
+
+        // samo vlasnik podcasta ili admin može dodati epizodu
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $podcast->user_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         $path = $request->file('audio')->store('podcasts', 'public');
 
         $episode = Episode::create([
-            'podcast_id' => $request->podcast_id,
-            'title' => $request->title,
-            'description' => $request->description,
-            'duration' => $request->duration,
-            'release_date' => $request->release_date,
+            'podcast_id' => $validated['podcast_id'],
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'duration' => $validated['duration'],
+            'release_date' => $validated['release_date'],
             'audio_path' => $path
         ]);
 
@@ -47,6 +60,10 @@ class EpisodeController extends Controller
     public function update(Request $request, $id)
     {
         $episode = Episode::findOrFail($id);
+
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $episode->podcast->user_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         $validated = $request->validate([
             'title' => 'string|max:255',
@@ -71,6 +88,11 @@ class EpisodeController extends Controller
     public function destroy($id)
     {
         $episode = Episode::findOrFail($id);
+        
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $episode->podcast->user_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
         $episode->delete();
 
         return response()->json(null, 204);
