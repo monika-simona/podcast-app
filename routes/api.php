@@ -17,29 +17,29 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Upravljanje sopstvenim nalogom - update i delete
 Route::middleware('auth:sanctum')->group(function () {
-    Route::put('users/{id}', [UserController::class, 'update'])->middleware('can:update-user,id');
-    Route::delete('users/{id}', [UserController::class, 'destroy'])->middleware('can:delete-user,id');
+    Route::put('users/{id}', [UserController::class, 'update']);
+    Route::delete('users/{id}', [UserController::class, 'destroy']);
 });
 
 // Rute dostupne svima
 Route::get('podcasts', [PodcastController::class, 'index']);
-Route::get('podcast/{id}', [PodcastController::class, 'show']);
+Route::get('podcasts/{id}', [PodcastController::class, 'show']);
 Route::get('episodes', [EpisodeController::class, 'index']);
 Route::get('episodes/{id}', [EpisodeController::class, 'show']);
 //ruta za ispis svih epizaoda podkasta
 Route::get('podcasts/{id}/episodes', [PodcastController::class, 'episodes']);
 
 // Rute za autore - samo oni sa ulogom 'author' mogu da pristupe
-Route::middleware(['auth:sanctum', 'role:author'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:author,admin'])->group(function () {
     //Podkast
-    Route::post('podcast', [PodcastController::class, 'store']);
-    Route::put('podcast/{id}', [PodcastController::class, 'update'])->middleware('can:update-podcast,id');
-    Route::delete('podcast/{id}', [PodcastController::class, 'destroy'])->middleware('can:delete-podcast,id');
+    Route::post('podcasts', [PodcastController::class, 'store']);
+    Route::put('podcasts/{id}', [PodcastController::class, 'update']);
+    Route::delete('podcasts/{id}', [PodcastController::class, 'destroy']);
 
     //Epizode
-    Route::post('episodes', [EpisodeController::class, 'store'])->middleware('can:create-episode');
-    Route::put('episodes/{id}', [EpisodeController::class, 'update'])->middleware('can:update-episode,id');
-    Route::delete('episodes/{id}', [EpisodeController::class, 'destroy'])->middleware('can:delete-episode,id');
+    Route::post('episodes', [EpisodeController::class, 'store']);
+    Route::put('episodes/{id}', [EpisodeController::class, 'update']);
+    Route::delete('episodes/{id}', [EpisodeController::class, 'destroy']);
 });
 
 // Rute za admina - može da vidi sve korisnike i da ih briše
