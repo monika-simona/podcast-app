@@ -5,12 +5,43 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Episode;
 use Illuminate\Http\Request;
+use App\Models\Podcast;
+
 
 class EpisodeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Episode::with('podcast')->get();
+        $query = Episode::with('podcast');
+
+        //filtriranje po nazivu epizode
+        if ($request->has('title')) {
+            $query->where('title', 'like', '%' . $request->query('title') . '%');
+        }
+
+        //filtriranje poreko id
+        if ($request->has('podcast_id')) {
+            $query->where('podcast_id', $request->query('podcast_id'));
+        }
+
+        // filtriranje po nazivu podkasta
+        if ($request->has('podcast_title')) {
+            $query->whereHas('podcast', function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->query('podcast_title') . '%');
+            });
+        }
+
+        //filtriranje po korisniku
+        if ($request->has('user_name')) {
+            $query->whereHas('podcast.user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->query('user_name') . '%');
+            });
+        }
+
+        $perPage = $request->query('per_page', 10);
+        $episodes = $query->paginate($perPage);
+
+        return response()->json($episodes);
     }
     
     public function store(Request $request){
@@ -25,7 +56,7 @@ class EpisodeController extends Controller
             'description' => 'nullable|string',
             'duration' => 'required|integer|min:1',
             'release_date' => 'required|date',
-            'audio' => 'required|mimes:mp3,wav|max:20480'
+            'audio' => 'required|mimes:mp3,wav|max:40960'
         ]);
 
         $podcast = Podcast::findOrFail($validated['podcast_id']);
@@ -53,7 +84,8 @@ class EpisodeController extends Controller
     //prikaz jedne epizode
     public function show($id)
     {
-        return Episode::with('podcast')->findOrFail($id);
+        $episode = Episode::with('podcast')->findOrFail($id);
+        return response()->json($episode);
     }
 
     //izmena epizode
@@ -70,7 +102,7 @@ class EpisodeController extends Controller
             'description' => 'nullable|string',
             'duration' => 'nullable|integer',
             'release_date' => 'nullable|date',
-            'audio' => 'nullable|mimes:mp3,wav|max:20480' 
+            'audio' => 'nullable|mimes:mp3,wav|max:40960' 
         ]);
 
         if($request->hasFile('audio')){

@@ -11,9 +11,27 @@ class PodcastController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $podcasts = Podcast::all();
+        $query = Podcast::query();
+
+        //filtriranje po naslovu
+        if ($request->has('title')) {
+            $query->where('title', 'like', '%' . $request->query('title') . '%');
+        }
+
+        // filtriranje po korisniku
+        if ($request->has('user_name')) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->query('user_name') . '%');
+            });
+        }
+
+        //paginacija - broj zapisa po strani(10)
+        $perPage = $request->query('per_page', 10);
+
+
+        $podcasts = $query->paginate($perPage);
         return response()->json($podcasts);
     }
 
@@ -44,17 +62,19 @@ class PodcastController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Podcast $podcast)
+    public function show($id)
     {
+        $podcast = Podcast::findOrFail($id);
         return response()->json($podcast);
-        
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Podcast $podcast)
+    public function update(Request $request, $id)
     {
+        $podcast = Podcast::findOrFail($id);
+
         if (auth()->user()->role !== 'admin' && auth()->id() !== $podcast->user_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -72,8 +92,10 @@ class PodcastController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Podcast $podcast)
+    public function destroy($id)
     {
+        $podcast = Podcast::findOrFail($id);
+        
         if (auth()->user()->role !== 'admin' && auth()->id() !== $podcast->user_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
