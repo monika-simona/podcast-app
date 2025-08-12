@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Podcast;
+use App\Models\Episode;
+
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,11 +16,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        //KREIRANJE 5 KORISNIKA PO ULOGAMA
+        User::factory()->count(2)->admin()->create();
+        User::factory()->count(3)->author()->create();
+        User::factory()->count(10)->user()->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+
+        // KREIRANJE PODKASTA ZA AUTORE
+        Podcast::factory()->count(20)->create();
+
+
+        //KREIRANJE EPIZODE ZA PODKSATE
+        Podcast::all()->each(function ($podcast) {
+            Episode::factory()->count(rand(1, 5))->create([
+                'podcast_id' => $podcast->id,
+            ]);
+        });
+
+        
     }
 }
