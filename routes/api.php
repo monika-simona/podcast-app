@@ -10,18 +10,18 @@ use App\Http\Controllers\AuthController;
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
-// Dobijanje trenutnog korisnika
+// dobijanje trenutnog korisnika
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Upravljanje sopstvenim nalogom - update i delete
+// upravljanje sopstvenim nalogom - update i delete
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('users/{id}', [UserController::class, 'update']);
     Route::delete('users/{id}', [UserController::class, 'destroy']);
 });
 
-// Rute dostupne svima
+// rute dostupne svima
 Route::get('podcasts', [PodcastController::class, 'index']);
 Route::get('podcasts/{id}', [PodcastController::class, 'show']);
 Route::get('episodes', [EpisodeController::class, 'index']);
@@ -29,7 +29,7 @@ Route::get('episodes/{id}', [EpisodeController::class, 'show']);
 //ruta za ispis svih epizaoda podkasta
 Route::get('podcasts/{id}/episodes', [PodcastController::class, 'episodes']);
 
-// Rute za autore - samo oni sa ulogom 'author' mogu da pristupe
+// rute za autore - samo oni sa ulogom 'author' mogu da pristupe
 Route::middleware(['auth:sanctum', 'role:author,admin'])->group(function () {
     //Podkast
     Route::post('podcasts', [PodcastController::class, 'store']);
@@ -42,7 +42,7 @@ Route::middleware(['auth:sanctum', 'role:author,admin'])->group(function () {
     Route::delete('episodes/{id}', [EpisodeController::class, 'destroy']);
 });
 
-// Rute za admina - može da vidi sve korisnike i da ih briše
+// rute za admina - može da vidi sve korisnike i da ih briše
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::apiResource('users', UserController::class)->only(['index', 'destroy']);
 });

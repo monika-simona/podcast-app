@@ -131,10 +131,4 @@ class EpisodeController extends Controller
     }
 
 
-   public function episodes($id)
-    {
-        $podcast = Podcast::findOrFail($id);
-        return response()->json($podcast->episodes);
-    }
-
 }
