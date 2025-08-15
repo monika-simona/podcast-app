@@ -117,6 +117,7 @@ class EpisodeController extends Controller
 
         return response()->json($episode);
     }
+
     public function destroy($id)
     {
         $episode = Episode::findOrFail($id);
@@ -125,9 +126,48 @@ class EpisodeController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
         
+        // Brisanje audio fajla
+        if ($episode->audio_path && \Storage::disk('public')->exists($episode->audio_path)) {
+            \Storage::disk('public')->delete($episode->audio_path);
+        }
+
         $episode->delete();
 
         return response()->json(null, 204);
+    }
+
+    //strimovanje audio fajla za registrovane (logovane) korisnike
+    public function play($id)
+    {
+        $episode = Episode::findOrFail($id);
+
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $filePath = $episode->audio_path;
+
+        if (!file_exists($filePath)) {
+            return response()->json(['error' => 'Audio file not found'], 404);
+        }
+        
+        //provera tipa fajla
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $mimeType = match(strtolower($extension)) {
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav',
+            default => 'application/octet-stream',
+        };
+
+
+        return response()->stream(function() use ($filePath) {
+            readfile($filePath);
+        }, 200, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $episode->title . '.' . $extension . '"',
+            'Content-Length' => filesize($filePath),
+            'Accept-Ranges' => 'bytes'
+        ]);
     }
 
 
