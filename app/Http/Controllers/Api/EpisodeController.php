@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Episode;
 use Illuminate\Http\Request;
 use App\Models\Podcast;
+use getID3;
 
 
 class EpisodeController extends Controller
@@ -54,7 +55,6 @@ class EpisodeController extends Controller
             'podcast_id'=> 'required|exists:podcasts,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'duration' => 'required|integer|min:1',
             'release_date' => 'required|date',
             'audio' => 'required|mimes:mp3,wav|max:40960'
         ]);
@@ -68,11 +68,17 @@ class EpisodeController extends Controller
 
         $path = $request->file('audio')->store('podcasts', 'public');
 
-        $episode = Episode::create([
+        //getID3
+        $getID3 = new getID3;
+        $fileInfo = $getID3->analyze(storage_path('app/public/' . $path));
+        $duration = isset($fileInfo['playtime_seconds']) ? round($fileInfo['playtime_seconds']) : null;
+
+
+         $episode = Episode::create([
             'podcast_id' => $validated['podcast_id'],
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'duration' => $validated['duration'],
+            'duration' => $duration,
             'release_date' => $validated['release_date'],
             'audio_path' => $path
         ]);
@@ -100,7 +106,6 @@ class EpisodeController extends Controller
         $validated = $request->validate([
             'title' => 'string|max:255',
             'description' => 'nullable|string',
-            'duration' => 'nullable|integer',
             'release_date' => 'nullable|date',
             'audio' => 'nullable|mimes:mp3,wav|max:40960' 
         ]);
@@ -110,7 +115,14 @@ class EpisodeController extends Controller
                 \Storage::disk('public')->delete($episode->audio_path);
             }
             $path = $request->file('audio')->store('podcasts', 'public');
+            
+            
+            $getID3 = new getID3;
+            $fileInfo = $getID3->analyze(storage_path('app/public/' . $path));
+            $duration = isset($fileInfo['playtime_seconds']) ? round($fileInfo['playtime_seconds']) : null;
+
             $validated['audio_path'] = $path;
+            $validated['duration'] = $duration;
         }
 
         $episode->update($validated);
