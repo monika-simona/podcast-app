@@ -35,7 +35,7 @@ class EpisodeController extends Controller
         //filtriranje po korisniku
         if ($request->has('user_name')) {
             $query->whereHas('podcast.user', function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->query('user_name') . '%');
+                $q->where('username', 'like', '%' . $request->query('user_name') . '%');
             });
         }
 
@@ -55,7 +55,7 @@ class EpisodeController extends Controller
             'podcast_id'=> 'required|exists:podcasts,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'release_date' => 'required|date',
+            'release_date' => 'nullable|date',
             'audio' => 'required|mimes:mp3,wav|max:40960'
         ]);
 
@@ -71,8 +71,11 @@ class EpisodeController extends Controller
         //getID3
         $getID3 = new getID3;
         $fileInfo = $getID3->analyze(storage_path('app/public/' . $path));
-        $duration = isset($fileInfo['playtime_seconds']) ? round($fileInfo['playtime_seconds']) : null;
-
+        $duration = null;
+        if (isset($fileInfo['playtime_seconds'])) {
+            $seconds = (int) $fileInfo['playtime_seconds'];
+            $duration = (int) ceil($seconds / 60); // duration u minutima
+        }
 
          $episode = Episode::create([
             'podcast_id' => $validated['podcast_id'],
@@ -103,12 +106,16 @@ class EpisodeController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
+        \Log::info('Raw request data:', $request->all());
+
         $validated = $request->validate([
-            'title' => 'string|max:255',
+            'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'release_date' => 'nullable|date',
-            'audio' => 'nullable|mimes:mp3,wav|max:40960' 
+            'audio' => 'sometimes|required|mimes:mp3,wav|max:40960'
         ]);
+        
+        \Log::info('Validated data:', $validated);
 
         if($request->hasFile('audio')){
             if($episode->audio_path){
@@ -119,11 +126,17 @@ class EpisodeController extends Controller
             
             $getID3 = new getID3;
             $fileInfo = $getID3->analyze(storage_path('app/public/' . $path));
-            $duration = isset($fileInfo['playtime_seconds']) ? round($fileInfo['playtime_seconds']) : null;
-
+            $duration = null;
+            if (isset($fileInfo['playtime_seconds'])) {
+                $seconds = (int) $fileInfo['playtime_seconds'];
+                $duration = (int) ceil($seconds / 60); // duration u minutima
+            }
+            
             $validated['audio_path'] = $path;
             $validated['duration'] = $duration;
         }
+        \Log::info('Validated data:', $validated);
+
 
         $episode->update($validated);
 
@@ -157,7 +170,7 @@ class EpisodeController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $filePath = $episode->audio_path;
+        $filePath = storage_path('app/public/' . $episode->audio_path);
 
         if (!file_exists($filePath)) {
             return response()->json(['error' => 'Audio file not found'], 404);

@@ -14,15 +14,12 @@ class Episode extends Model
         return $this->belongsTo(Podcast::class);
     }
 
-    //puna lokalna putanja do fajla
-    public function getAudioPathAttribute($value)
-    {
-        return storage_path('app/public/' . $value);
-    }
 
     //url za frontend
     public function getAudioUrlAttribute()
     {
-        return asset('storage/' . $this->attributes['audio_path']);
+        return $this->audio_path 
+        ? asset('storage/' . $this->audio_path) 
+        : null;
     }
 }

@@ -24,7 +24,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'=>'required|string|max:255',
+            'name'=>'required|string|max:255|unique:users,name',
             'email'=>'required|email|unique:users,email',
             'password'=>'required|string|min:8',
             'role'=>'required|in:admin,author,user',
@@ -60,7 +60,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'name'=>'string|max:255',
+            'name'=>'string|max:255|unique:users,name',
             'email' => 'email|unique:users,email,' . $user->id, // dozvoli ovaj email ako pripada korisniku da ne javlja gresku
             'password'=>'nullable|string|min:8',
             'role'=>'in:admin,author,user',

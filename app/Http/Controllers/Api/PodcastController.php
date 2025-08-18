@@ -11,9 +11,11 @@ class PodcastController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    
     public function index(Request $request)
     {
-        $query = Podcast::query();
+        $query = Podcast::with('user');
 
         //filtriranje po naslovu
         if ($request->has('title')) {
@@ -32,6 +34,17 @@ class PodcastController extends Controller
 
 
         $podcasts = $query->paginate($perPage);
+        
+        $podcasts->getCollection()->transform(function ($podcast) {
+            return [
+                'id' => $podcast->id,
+                'title' => $podcast->title,
+                'description' => $podcast->description,
+                'author' => $podcast->user->name ?? 'Nepoznat', // ime autora
+                'user_id' => $podcast->user_id,
+            ];
+        });
+
         return response()->json($podcasts);
     }
 
@@ -64,8 +77,15 @@ class PodcastController extends Controller
      */
     public function show($id)
     {
-        $podcast = Podcast::findOrFail($id);
-        return response()->json($podcast);
+        $podcast = Podcast::with('user')->findOrFail($id);
+
+        return response()->json([
+            'id' => $podcast->id,
+            'title' => $podcast->title,
+            'description' => $podcast->description,
+            'author' => $podcast->user->name ?? 'Nepoznat',
+            'user_id' => $podcast->user_id,
+    ]);
     }
 
     /**
@@ -112,4 +132,12 @@ class PodcastController extends Controller
         $episodes = $podcast->episodes;
         return response()->json($episodes);
     }
+    
+    public function myPodcasts()
+    {
+        $userId = auth()->id();
+        $podcasts = Podcast::where('user_id', $userId)->get();
+        return response()->json($podcasts);
+    }
 }
+

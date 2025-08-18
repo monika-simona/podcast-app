@@ -13,7 +13,7 @@ class EpisodeFactory extends Factory
     public function definition()
     {
 
-        $dummyAudioPath = 'podcasts/podkast poroba1.mp3.mp3';
+        $dummyAudioPath = 'podcasts/podkast poroba1.mp3';
 
 
         return [

@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->get('episodes/{id}/play', [PodcastController:
 // rute za autore - samo oni sa ulogom 'author' mogu da pristupe
 Route::middleware(['auth:sanctum', 'role:author,admin'])->group(function () {
     //Podkast
+    Route::get('my-podcasts', [PodcastController::class, 'myPodcasts']);
     Route::post('podcasts', [PodcastController::class, 'store']);
     Route::put('podcasts/{id}', [PodcastController::class, 'update']);
     Route::delete('podcasts/{id}', [PodcastController::class, 'destroy']);
