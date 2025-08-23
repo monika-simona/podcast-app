@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PodcastController;
 use App\Http\Controllers\Api\EpisodeController;
 use App\Http\Controllers\AuthController;
 
+
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
@@ -30,7 +31,7 @@ Route::get('episodes/{id}', [EpisodeController::class, 'show']);
 Route::get('podcasts/{id}/episodes', [PodcastController::class, 'episodes']);
 
 //ruta za slusanje podkasta dozvoljena samo ulogovanim korisnicima
-Route::middleware('auth:sanctum')->get('episodes/{id}/play', [PodcastController::class, 'play']);
+Route::middleware('auth:sanctum')->get('episodes/{id}/play', [EpisodeController::class, 'play']);
 
 // rute za autore - samo oni sa ulogom 'author' mogu da pristupe
 Route::middleware(['auth:sanctum', 'role:author,admin'])->group(function () {
@@ -48,8 +49,13 @@ Route::middleware(['auth:sanctum', 'role:author,admin'])->group(function () {
 
 // rute za admina - može da vidi korisnike i da ih briše
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::apiResource('users', UserController::class)->only(['index', 'show', 'destroy']);
+    // Resource rute
+    Route::apiResource('users', UserController::class)->only(['index', 'destroy']);
+
+    // Dodatna ruta za promenu uloge
+    Route::put('users/{id}/role', [AdminUserController::class, 'updateRole']);
 });
+
 
 // Logout ruta, dostupna samo autentifikovanim korisnicima
 Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logout']);
