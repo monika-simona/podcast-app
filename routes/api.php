@@ -73,6 +73,7 @@ Route::get('news', [NewsController::class, 'search']);
 //rute za tagove dostupne svima
 Route::get('/tags', [TagController::class, 'index']);       // lista svih tagova
 Route::get('/episodes/{id}/tags', [EpisodeTagController::class, 'getTags']);     // preuzmi tagove za epizodu
+Route::get('/tags/{id}/episodes', [TagController::class, 'getEpisodes']);
 
 
 //rute za tagove ulogovanim korisnicima

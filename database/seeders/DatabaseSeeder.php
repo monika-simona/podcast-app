@@ -32,7 +32,13 @@ class DatabaseSeeder extends Seeder
                 'podcast_id' => $podcast->id,
             ]);
         });
-
+        
+        //za tagove i pivot tabelu
+        $this->call([
+            TagSeeder::class,
+            EpisodeTagSeeder::class,
+        ]);
+        
         
     }
 }
