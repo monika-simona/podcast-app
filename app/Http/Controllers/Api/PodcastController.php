@@ -5,52 +5,45 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Podcast;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PodcastController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-
-    
     public function index(Request $request)
     {
-        $query = Podcast::with('user');
-
-        //filtriranje po naslovu
-        if ($request->has('title')) {
-            $query->where('title', 'like', '%' . $request->query('title') . '%');
-        }
-
-        // filtriranje po korisniku
-        if ($request->has('user_name')) {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->query('user_name') . '%');
-            });
-        }
-
-        //paginacija - broj zapisa po strani(10)
+        $cacheKey = 'podcasts_' . md5($request->fullUrl());
         $perPage = $request->query('per_page', 10);
 
+        $podcasts = Cache::remember($cacheKey, 60, function() use ($request, $perPage) {
+            $query = Podcast::with('user');
 
-        $podcasts = $query->paginate($perPage);
-        
-        $podcasts->getCollection()->transform(function ($podcast) {
-            return [
-                'id' => $podcast->id,
-                'title' => $podcast->title,
-                'description' => $podcast->description,
-                'author' => $podcast->user->name ?? 'Nepoznat', // ime autora
-                'user_id' => $podcast->user_id,
-            ];
+            if ($request->has('title')) {
+                $query->where('title', 'like', '%' . $request->query('title') . '%');
+            }
+            if ($request->has('user_name')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->query('user_name') . '%');
+                });
+            }
+
+            $paginated = $query->paginate($perPage);
+
+            $paginated->getCollection()->transform(function ($podcast) {
+                return [
+                    'id' => $podcast->id,
+                    'title' => $podcast->title,
+                    'description' => $podcast->description,
+                    'author' => $podcast->user->name ?? 'Nepoznat',
+                    'user_id' => $podcast->user_id,
+                ];
+            });
+
+            return $paginated;
         });
 
         return response()->json($podcasts);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         if (auth()->user()->role !== 'author' && auth()->user()->role !== 'admin') {
@@ -65,32 +58,33 @@ class PodcastController extends Controller
         $podcast = Podcast::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'user_id' => auth()->id(), // vlasnik je prijavljeni korisnik
+            'user_id' => auth()->id(),
         ]);
 
-        return response()->json($podcast,201);
+        // Obrisati keš liste podkasta
+        Cache::flush();
 
+        return response()->json($podcast,201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
-        $podcast = Podcast::with('user')->findOrFail($id);
+        $cacheKey = 'podcast_show_' . $id;
 
-        return response()->json([
-            'id' => $podcast->id,
-            'title' => $podcast->title,
-            'description' => $podcast->description,
-            'author' => $podcast->user->name ?? 'Nepoznat',
-            'user_id' => $podcast->user_id,
-    ]);
+        $podcast = Cache::remember($cacheKey, 60, function() use ($id) {
+            $p = Podcast::with('user')->findOrFail($id);
+            return [
+                'id' => $p->id,
+                'title' => $p->title,
+                'description' => $p->description,
+                'author' => $p->user->name ?? 'Nepoznat',
+                'user_id' => $p->user_id,
+            ];
+        });
+
+        return response()->json($podcast);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
         $podcast = Podcast::findOrFail($id);
@@ -106,38 +100,50 @@ class PodcastController extends Controller
 
         $podcast->update($validated);
 
+        // Obrisati keš
+        Cache::forget('podcast_show_' . $id);
+        Cache::flush();
+
         return response()->json($podcast);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
         $podcast = Podcast::findOrFail($id);
-        
+
         if (auth()->user()->role !== 'admin' && auth()->id() !== $podcast->user_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-        
+
         $podcast->delete();
 
-        return response()->json(null, 204);
+        Cache::forget('podcast_show_' . $id);
+        Cache::flush();
 
+        return response()->json(null, 204);
     }
 
     public function episodes($id)
     {
-        $podcast = Podcast::findOrFail($id);
-        $episodes = $podcast->episodes;
+        $cacheKey = 'podcast_episodes_' . $id;
+
+        $episodes = Cache::remember($cacheKey, 60, function() use ($id) {
+            $podcast = Podcast::findOrFail($id);
+            return $podcast->episodes;
+        });
+
         return response()->json($episodes);
     }
-    
+
     public function myPodcasts()
     {
         $userId = auth()->id();
-        $podcasts = Podcast::where('user_id', $userId)->get();
+        $cacheKey = 'my_podcasts_' . $userId;
+
+        $podcasts = Cache::remember($cacheKey, 60, function() use ($userId) {
+            return Podcast::where('user_id', $userId)->get();
+        });
+
         return response()->json($podcasts);
     }
 }
-
