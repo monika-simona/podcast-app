@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\EpisodeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\ITunesController;
 use App\Http\Controllers\Api\NewsController;
+use App\Http\Controllers\Api\EpisodeTagController;
+use App\Http\Controllers\Api\TagController;
 
 
 Route::post('register', [AuthController::class, 'register']);
@@ -67,3 +69,16 @@ Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logou
 Route::get('/itunes-search', [ITunesController::class, 'search']);
 
 Route::get('news', [NewsController::class, 'search']);
+
+//rute za tagove dostupne svima
+Route::get('/tags', [TagController::class, 'index']);       // lista svih tagova
+Route::get('/episodes/{id}/tags', [EpisodeTagController::class, 'getTags']);     // preuzmi tagove za epizodu
+
+
+//rute za tagove ulogovanim korisnicima
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/tags', [TagController::class, 'store']);      // dodavanje novog taga
+    Route::delete('/tags/{id}', [TagController::class, 'destroy']); // brisanje taga
+    Route::post('/episodes/{id}/tags', [EpisodeTagController::class, 'attachTags']); // dodaj tagove epizodi
+    Route::delete('/episodes/{id}/tags/{tagId}', [EpisodeTagController::class, 'detachTag']); // ukloni tag
+});

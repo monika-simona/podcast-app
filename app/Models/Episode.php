@@ -22,4 +22,9 @@ class Episode extends Model
         ? asset('storage/' . $this->audio_path) 
         : null;
     }
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'episode_tag');
+    }
 }
