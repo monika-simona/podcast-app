@@ -6,6 +6,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\PodcastController;
 use App\Http\Controllers\Api\EpisodeController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\ITunesController;
+use App\Http\Controllers\Api\NewsController;
 
 
 Route::post('register', [AuthController::class, 'register']);
@@ -59,3 +61,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
 // Logout ruta, dostupna samo autentifikovanim korisnicima
 Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logout']);
+
+//javna ruta
+
+Route::get('/itunes-search', [ITunesController::class, 'search']);
+
+Route::get('news', [NewsController::class, 'search']);
