@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Models\Podcast;
 use getID3;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+
 
 class EpisodeController extends Controller
 {
@@ -150,6 +152,10 @@ class EpisodeController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+
+        //povecaj broj preslusavanja
+        $episode->increment('play_count');
+
         $filePath = storage_path('app/public/' . $episode->audio_path);
         if (!file_exists($filePath)) {
             return response()->json(['error' => 'Audio file not found'], 404);
@@ -170,5 +176,27 @@ class EpisodeController extends Controller
             'Content-Length' => filesize($filePath),
             'Accept-Ranges' => 'bytes'
         ]);
+    }
+    public function episodesByMonth()
+    {
+        $data = Episode::select(
+            DB::raw("DATE_FORMAT(release_date, '%Y-%m') as month"),
+            DB::raw('COUNT(*) as total')
+        )
+        ->groupBy('month')
+        ->orderBy('month')
+        ->get();
+
+        return response()->json($data);
+    }
+
+    public function topEpisodes($limit = 10)
+    {
+        $episodes = Episode::with('podcast')
+            ->orderByDesc('play_count')
+            ->take($limit)
+            ->get();
+
+        return response()->json($episodes);
     }
 }

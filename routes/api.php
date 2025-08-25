@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ITunesController;
 use App\Http\Controllers\Api\NewsController;
 use App\Http\Controllers\Api\EpisodeTagController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\StatisticsController;
 
 
 Route::post('register', [AuthController::class, 'register']);
@@ -68,18 +69,24 @@ Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logou
 
 Route::get('/itunes-search', [ITunesController::class, 'search']);
 
-Route::get('news', [NewsController::class, 'search']);
+Route::get('/news', [NewsController::class, 'search']);
 
 //rute za tagove dostupne svima
-Route::get('/tags', [TagController::class, 'index']);       // lista svih tagova
-Route::get('/episodes/{id}/tags', [EpisodeTagController::class, 'getTags']);     // preuzmi tagove za epizodu
+Route::get('/tags', [TagController::class, 'index']);   
+Route::get('/episodes/{id}/tags', [EpisodeTagController::class, 'getTags']);  
 Route::get('/tags/{id}/episodes', [TagController::class, 'getEpisodes']);
 
 
 //rute za tagove ulogovanim korisnicima
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/tags', [TagController::class, 'store']);      // dodavanje novog taga
-    Route::delete('/tags/{id}', [TagController::class, 'destroy']); // brisanje taga
-    Route::post('/episodes/{id}/tags', [EpisodeTagController::class, 'attachTags']); // dodaj tagove epizodi
-    Route::delete('/episodes/{id}/tags/{tagId}', [EpisodeTagController::class, 'detachTag']); // ukloni tag
+    Route::post('/tags', [TagController::class, 'store']); 
+    Route::delete('/tags/{id}', [TagController::class, 'destroy']);
+    Route::post('/episodes/{id}/tags', [EpisodeTagController::class, 'attachTags']);
+    Route::delete('/episodes/{id}/tags/{tagId}', [EpisodeTagController::class, 'detachTag']);
 });
+
+//statistika
+Route::get('/stats/episodes-by-tag', [StatisticsController::class, 'episodesByTag']); 
+Route::get('/episodes-by-month', [EpisodeController::class, 'episodesByMonth']);
+Route::get('/top-episodes', [EpisodeController::class, 'topEpisodes']);
+Route::get('/top-podcasts', [PodcastController::class, 'topPodcasts']);

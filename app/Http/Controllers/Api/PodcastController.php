@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Podcast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class PodcastController extends Controller
 {
@@ -143,6 +144,20 @@ class PodcastController extends Controller
         $podcasts = Cache::remember($cacheKey, 60, function() use ($userId) {
             return Podcast::where('user_id', $userId)->get();
         });
+
+        return response()->json($podcasts);
+    }
+
+    public function topPodcasts()
+    {
+        // join epizoda i podkast, grupiši po podkastu i saberi play_count
+        $podcasts = DB::table('podcasts')
+            ->join('episodes', 'episodes.podcast_id', '=', 'podcasts.id')
+            ->select('podcasts.id', 'podcasts.title', DB::raw('SUM(episodes.play_count) as total_plays'))
+            ->groupBy('podcasts.id', 'podcasts.title')
+            ->orderByDesc('total_plays')
+            ->limit(10)
+            ->get();
 
         return response()->json($podcasts);
     }
