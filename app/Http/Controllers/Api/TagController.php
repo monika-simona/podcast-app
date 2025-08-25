@@ -32,10 +32,28 @@ class TagController extends Controller
         return response()->json(null, 204);
     }
 
-    public function getEpisodes($id)
+    public function getEpisodes(Request $request, $id)
     {
-        $tag = Tag::with('episodes')->findOrFail($id);
-        return response()->json($tag->episodes);
+        $perPage = $request->query('per_page', 10);
+
+        $tag = Tag::findOrFail($id);
+
+        $query = $tag->episodes()->with('podcast');
+
+        if ($request->has('title')) {
+            $query->where('title', 'like', '%' . $request->query('title') . '%');
+        }
+
+        $sortBy = $request->query('sort_by', 'created_at');
+        $sortOrder = $request->query('sort_order', 'desc');
+        $allowedSorts = ['id', 'title', 'created_at', 'updated_at', 'release_date'];
+
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        return response()->json($query->paginate($perPage));
     }
+
 }
 

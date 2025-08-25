@@ -13,34 +13,28 @@ class EpisodeController extends Controller
 {
     public function index(Request $request)
     {
-        $cacheKey = 'episodes_' . md5($request->fullUrl());
-        $perPage = $request->query('per_page', 10);
+        $query = Episode::with(['podcast', 'tags']);
 
-        $episodes = Cache::remember($cacheKey, 60, function() use ($request, $perPage) {
-            $query = Episode::with('podcast');
+        if ($request->filled('title')) {
+            $query->where('title', 'like', '%' . $request->title . '%');
+        }
 
-            if ($request->has('title')) {
-                $query->where('title', 'like', '%' . $request->query('title') . '%');
-            }
-            if ($request->has('podcast_id')) {
-                $query->where('podcast_id', $request->query('podcast_id'));
-            }
-            if ($request->has('podcast_title')) {
-                $query->whereHas('podcast', function($q) use ($request) {
-                    $q->where('title', 'like', '%' . $request->query('podcast_title') . '%');
-                });
-            }
-            if ($request->has('user_name')) {
-                $query->whereHas('podcast.user', function($q) use ($request) {
-                    $q->where('username', 'like', '%' . $request->query('user_name') . '%');
-                });
-            }
+        if ($request->filled('tag_id')) {
+            $query->whereHas('tags', function ($q) use ($request) {
+                $q->where('tags.id', $request->tag_id);
+            });
+        }
 
-            return $query->paginate($perPage);
-        });
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = $request->get('per_page', 5);
+        $episodes = $query->paginate($perPage);
 
         return response()->json($episodes);
     }
+
 
     public function store(Request $request){
         if (auth()->user()->role !== 'author' && auth()->user()->role !== 'admin') {
