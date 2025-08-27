@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
+
 class PodcastController extends Controller
 {
     public function index(Request $request)
@@ -36,6 +37,7 @@ class PodcastController extends Controller
                     'description' => $podcast->description,
                     'author' => $podcast->user->name ?? 'Nepoznat',
                     'user_id' => $podcast->user_id,
+                    'cover_image_url' => $podcast->cover_image ? asset('storage/' . $podcast->cover_image) : asset('images/default-cover.png'),
                 ];
             });
 
@@ -54,11 +56,19 @@ class PodcastController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
         ]);
+
+        if ($request->hasFile('cover_image')) {
+            $path = $request->file('cover_image')->store('covers', 'public');
+            $validated['cover_image'] = $path;
+        }
+
 
         $podcast = Podcast::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
+            'cover_image' => $validated['cover_image'],
             'user_id' => auth()->id(),
         ]);
 
@@ -80,7 +90,7 @@ class PodcastController extends Controller
                 'description' => $p->description,
                 'author' => $p->user->name ?? 'Nepoznat',
                 'user_id' => $p->user_id,
-            ];
+                'cover_image_url' => $p->cover_image ? asset('storage/' . $p->cover_image) : asset('images/default-cover.png'),            ];
         });
 
         return response()->json($podcast);
@@ -97,7 +107,16 @@ class PodcastController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
         ]);
+
+        if ($request->hasFile('cover_image')) {
+            if ($podcast->cover_image && Storage::disk('public')->exists($podcast->cover_image)) {
+                Storage::disk('public')->delete($podcast->cover_image);
+            }
+            $path = $request->file('cover_image')->store('covers', 'public');
+            $validated['cover_image'] = $path;
+        }
 
         $podcast->update($validated);
 

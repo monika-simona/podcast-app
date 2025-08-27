@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Factories;
 
 use App\Models\Podcast;
@@ -15,6 +16,7 @@ class PodcastFactory extends Factory
             'title' => $this->faker->sentence(3, true),
             'description' => $this->faker->paragraph(),
             'user_id' => User::inRandomOrder()->first()->id ?? User::factory(),
+            'cover_image' => 'images/default-cover.png',
         ];
     }
 }
