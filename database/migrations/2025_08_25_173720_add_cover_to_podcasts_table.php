@@ -12,7 +12,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('podcasts', function (Blueprint $table) {
-            $table->string('cover_image')->nullable(); // putanja do slike
+            $table->string('cover_image_url')->nullable(); // putanja do slike
         });
     }
 

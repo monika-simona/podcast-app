@@ -169,15 +169,32 @@ class PodcastController extends Controller
 
     public function topPodcasts()
     {
-        // join epizoda i podkast, grupiši po podkastu i saberi play_count
         $podcasts = DB::table('podcasts')
             ->join('episodes', 'episodes.podcast_id', '=', 'podcasts.id')
-            ->select('podcasts.id', 'podcasts.title', DB::raw('SUM(episodes.play_count) as total_plays'))
-            ->groupBy('podcasts.id', 'podcasts.title')
+            ->select(
+                'podcasts.id',
+                'podcasts.title',
+                'podcasts.cover_image',
+                DB::raw('SUM(episodes.play_count) as total_plays')
+            )
+            ->groupBy('podcasts.id', 'podcasts.title', 'podcasts.cover_image')
             ->orderByDesc('total_plays')
             ->limit(10)
             ->get();
 
+        //transformacija cover_image_url
+        $podcasts->transform(function ($podcast) {
+            return [
+                'id' => $podcast->id,
+                'title' => $podcast->title,
+                'cover_image_url' => $podcast->cover_image 
+                    ? asset('storage/' . $podcast->cover_image) 
+                    : asset('images/default-cover.png'),
+                'total_plays' => $podcast->total_plays,
+            ];
+        });
+
         return response()->json($podcasts);
     }
+
 }
