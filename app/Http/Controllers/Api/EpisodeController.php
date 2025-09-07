@@ -26,6 +26,7 @@ class EpisodeController extends Controller
                 $q->where('tags.id', $request->tag_id);
             });
         }
+        
 
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
