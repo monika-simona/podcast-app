@@ -6,17 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Episode;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use App\Http\Resources\TagResource;
 
 class EpisodeTagController extends Controller
 {
-    //dobavljanje svih tagova za epizodu
     public function getTags($id)
     {
         $episode = Episode::with('tags')->findOrFail($id);
-        return response()->json($episode->tags);
+        return TagResource::collection($episode->tags);
     }
 
-    //dodavanje tagova epizodi
     public function attachTags(Request $request, $id)
     {
         $episode = Episode::findOrFail($id);
@@ -36,11 +35,10 @@ class EpisodeTagController extends Controller
 
         return response()->json([
             'message' => 'Tagovi uspešno dodati',
-            'tags' => $episode->tags
+            'tags' => TagResource::collection($episode->tags),
         ]);
     }
 
-    //uklanjanje taga iz epizode
     public function detachTag($id, $tagId)
     {
         $episode = Episode::findOrFail($id);

@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Podcast;
+use App\Http\Resources\PodcastResource;
+use App\Http\Resources\EpisodeResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-
-
 
 class PodcastController extends Controller
 {
@@ -18,35 +18,22 @@ class PodcastController extends Controller
         $cacheKey = 'podcasts_' . md5($request->fullUrl());
         $perPage = $request->query('per_page', 10);
 
-        $podcasts = Cache::remember($cacheKey, 60, function() use ($request, $perPage) {
+        $podcasts = Cache::remember($cacheKey, 60, function () use ($request, $perPage) {
             $query = Podcast::with('user');
 
             if ($request->has('title')) {
                 $query->where('title', 'like', '%' . $request->query('title') . '%');
             }
             if ($request->has('user_name')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->query('user_name') . '%');
                 });
             }
 
-            $paginated = $query->paginate($perPage);
-
-            $paginated->getCollection()->transform(function ($podcast) {
-                return [
-                    'id' => $podcast->id,
-                    'title' => $podcast->title,
-                    'description' => $podcast->description,
-                    'author' => $podcast->user->name ?? 'Nepoznat',
-                    'user_id' => $podcast->user_id,
-                    'cover_image_url' => $podcast->cover_image ? asset('storage/' . $podcast->cover_image) : asset('images/default-cover.png'),
-                ];
-            });
-
-            return $paginated;
+            return $query->paginate($perPage);
         });
 
-        return response()->json($podcasts);
+        return PodcastResource::collection($podcasts);
     }
 
     public function store(Request $request)
@@ -66,36 +53,27 @@ class PodcastController extends Controller
             $validated['cover_image'] = $path;
         }
 
-
         $podcast = Podcast::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'cover_image' => $validated['cover_image'],
+            'cover_image' => $validated['cover_image'] ?? null,
             'user_id' => auth()->id(),
         ]);
 
-        // Obrisati keš liste podkasta
         Cache::flush();
 
-        return response()->json($podcast,201);
+        return new PodcastResource($podcast->load('user'));
     }
 
     public function show($id)
     {
         $cacheKey = 'podcast_show_' . $id;
 
-        $podcast = Cache::remember($cacheKey, 60, function() use ($id) {
-            $p = Podcast::with('user')->findOrFail($id);
-            return [
-                'id' => $p->id,
-                'title' => $p->title,
-                'description' => $p->description,
-                'author' => $p->user->name ?? 'Nepoznat',
-                'user_id' => $p->user_id,
-                'cover_image_url' => $p->cover_image ? asset('storage/' . $p->cover_image) : asset('images/default-cover.png'),            ];
+        $podcast = Cache::remember($cacheKey, 60, function () use ($id) {
+            return Podcast::with('user')->findOrFail($id);
         });
 
-        return response()->json($podcast);
+        return new PodcastResource($podcast);
     }
 
     public function update(Request $request, $id)
@@ -122,11 +100,10 @@ class PodcastController extends Controller
 
         $podcast->update($validated);
 
-        // Obrisati keš
         Cache::forget('podcast_show_' . $id);
         Cache::flush();
 
-        return response()->json($podcast);
+        return new PodcastResource($podcast->load('user'));
     }
 
     public function destroy($id)
@@ -149,12 +126,12 @@ class PodcastController extends Controller
     {
         $cacheKey = 'podcast_episodes_' . $id;
 
-        $episodes = Cache::remember($cacheKey, 60, function() use ($id) {
-            $podcast = Podcast::findOrFail($id);
+        $episodes = Cache::remember($cacheKey, 60, function () use ($id) {
+            $podcast = Podcast::with('episodes')->findOrFail($id);
             return $podcast->episodes;
         });
 
-        return response()->json($episodes);
+        return EpisodeResource::collection($episodes);
     }
 
     public function myPodcasts()
@@ -162,11 +139,11 @@ class PodcastController extends Controller
         $userId = auth()->id();
         $cacheKey = 'my_podcasts_' . $userId;
 
-        $podcasts = Cache::remember($cacheKey, 60, function() use ($userId) {
-            return Podcast::where('user_id', $userId)->get();
+        $podcasts = Cache::remember($cacheKey, 60, function () use ($userId) {
+            return Podcast::where('user_id', $userId)->with('user')->get();
         });
 
-        return response()->json($podcasts);
+        return PodcastResource::collection($podcasts);
     }
 
     public function topPodcasts()
@@ -184,13 +161,12 @@ class PodcastController extends Controller
             ->limit(10)
             ->get();
 
-        //transformacija cover_image_url
         $podcasts->transform(function ($podcast) {
             return [
                 'id' => $podcast->id,
                 'title' => $podcast->title,
-                'cover_image_url' => $podcast->cover_image 
-                    ? asset('storage/' . $podcast->cover_image) 
+                'cover_image_url' => $podcast->cover_image
+                    ? asset('storage/' . $podcast->cover_image)
                     : asset('images/default-cover.png'),
                 'total_plays' => $podcast->total_plays,
             ];
@@ -198,5 +174,4 @@ class PodcastController extends Controller
 
         return response()->json($podcasts);
     }
-
 }

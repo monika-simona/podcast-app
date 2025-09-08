@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use App\Http\Resources\TagResource;
+use App\Http\Resources\EpisodeResource;
 
 class TagController extends Controller
 {
     public function index()
     {
-        return response()->json(Tag::withCount('episodes')->get());
+        return TagResource::collection(Tag::withCount('episodes')->get());
     }
 
     public function store(Request $request)
@@ -21,7 +23,7 @@ class TagController extends Controller
 
         $tag = Tag::create($validated);
 
-        return response()->json($tag, 201);
+        return new TagResource($tag);
     }
 
     public function destroy($id)
@@ -35,12 +37,11 @@ class TagController extends Controller
     public function getEpisodes(Request $request, $id)
     {
         $perPage = $request->query('per_page', 10);
-
         $tag = Tag::findOrFail($id);
 
         $query = $tag->episodes()->with('podcast');
 
-        if ($request->has('title')) {
+        if ($request->filled('title')) {
             $query->where('title', 'like', '%' . $request->query('title') . '%');
         }
 
@@ -52,8 +53,8 @@ class TagController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
-        return response()->json($query->paginate($perPage));
+        $episodes = $query->paginate($perPage);
+
+        return EpisodeResource::collection($episodes);
     }
-
 }
-

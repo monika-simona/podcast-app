@@ -5,35 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
-    /**
-     * Display a paginated listing of the resource with optional filters.
-     */
     public function index(Request $request)
     {
         $perPage = $request->query('per_page', 5);
         $query = User::query();
 
-        // Filter po imenu
-        if ($request->has('name') && !empty($request->query('name'))) {
+        if ($request->filled('name')) {
             $query->where('name', 'like', '%' . $request->query('name') . '%');
         }
 
-        // Filter po emailu
-        if ($request->has('email') && !empty($request->query('email'))) {
+        if ($request->filled('email')) {
             $query->where('email', 'like', '%' . $request->query('email') . '%');
         }
 
         $users = $query->paginate($perPage);
 
-        return response()->json($users);
+        return UserResource::collection($users);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -47,21 +40,15 @@ class UserController extends Controller
 
         $user = User::create($validated);
 
-        return response()->json($user, 201);
+        return new UserResource($user);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $user = User::findOrFail($id);
-        return response()->json($user);
+        $user = User::with('podcasts')->findOrFail($id);
+        return new UserResource($user);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $user = User::findOrFail($id);
@@ -83,12 +70,9 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        return response()->json($user);
+        return new UserResource($user->load('podcasts'));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);

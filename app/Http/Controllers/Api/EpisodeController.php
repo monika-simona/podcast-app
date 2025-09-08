@@ -4,18 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Episode;
-use Illuminate\Http\Request;
 use App\Models\Podcast;
-use getID3;
+use App\Http\Resources\EpisodeResource;
+use App\Http\Resources\PodcastResource;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-
+use getID3;
 
 class EpisodeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Episode::with(['podcast', 'tags']);
+        $query = Episode::with(['podcast.user', 'tags']);
 
         if ($request->filled('title')) {
             $query->where('title', 'like', '%' . $request->title . '%');
@@ -26,7 +27,6 @@ class EpisodeController extends Controller
                 $q->where('tags.id', $request->tag_id);
             });
         }
-        
 
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
@@ -35,17 +35,17 @@ class EpisodeController extends Controller
         $perPage = $request->get('per_page', 5);
         $episodes = $query->paginate($perPage);
 
-        return response()->json($episodes);
+        return EpisodeResource::collection($episodes);
     }
 
-
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         if (auth()->user()->role !== 'author' && auth()->user()->role !== 'admin') {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
-            'podcast_id'=> 'required|exists:podcasts,id',
+            'podcast_id' => 'required|exists:podcasts,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'release_date' => 'nullable|date',
@@ -61,7 +61,9 @@ class EpisodeController extends Controller
 
         $getID3 = new getID3;
         $fileInfo = $getID3->analyze(storage_path('app/public/' . $path));
-        $duration = isset($fileInfo['playtime_seconds']) ? (int) ceil($fileInfo['playtime_seconds'] / 60) : null;
+        $duration = isset($fileInfo['playtime_seconds'])
+            ? (int) ceil($fileInfo['playtime_seconds'] / 60)
+            : null;
 
         $episode = Episode::create([
             'podcast_id' => $validated['podcast_id'],
@@ -72,20 +74,19 @@ class EpisodeController extends Controller
             'audio_path' => $path
         ]);
 
-        // Obrisati keš za sve epizode i taj podkast
         Cache::forget('episodes_' . md5('podcast_id=' . $validated['podcast_id']));
 
-        return response()->json($episode, 201);
+        return new EpisodeResource($episode->load(['podcast.user', 'tags']));
     }
 
     public function show($id)
     {
         $cacheKey = 'episode_' . $id;
-        $episode = Cache::remember($cacheKey, 60, function() use ($id) {
-            return Episode::with('podcast')->findOrFail($id);
+        $episode = Cache::remember($cacheKey, 60, function () use ($id) {
+            return Episode::with(['podcast.user', 'tags'])->findOrFail($id);
         });
 
-        return response()->json($episode);
+        return new EpisodeResource($episode);
     }
 
     public function update(Request $request, $id)
@@ -103,25 +104,26 @@ class EpisodeController extends Controller
             'audio' => 'sometimes|required|mimes:mp3,wav|max:40960'
         ]);
 
-        if($request->hasFile('audio')){
-            if($episode->audio_path){
+        if ($request->hasFile('audio')) {
+            if ($episode->audio_path) {
                 \Storage::disk('public')->delete($episode->audio_path);
             }
             $path = $request->file('audio')->store('podcasts', 'public');
             $getID3 = new getID3;
             $fileInfo = $getID3->analyze(storage_path('app/public/' . $path));
-            $duration = isset($fileInfo['playtime_seconds']) ? (int) ceil($fileInfo['playtime_seconds'] / 60) : null;
+            $duration = isset($fileInfo['playtime_seconds'])
+                ? (int) ceil($fileInfo['playtime_seconds'] / 60)
+                : null;
             $validated['audio_path'] = $path;
             $validated['duration'] = $duration;
         }
 
         $episode->update($validated);
 
-        // Obrisati keš za ovu epizodu i listu epizoda
         Cache::forget('episode_' . $id);
         Cache::forget('episodes_' . md5('podcast_id=' . $episode->podcast_id));
 
-        return response()->json($episode);
+        return new EpisodeResource($episode->load(['podcast.user', 'tags']));
     }
 
     public function destroy($id)
@@ -138,7 +140,6 @@ class EpisodeController extends Controller
 
         $episode->delete();
 
-        // Obrisati keš
         Cache::forget('episode_' . $id);
         Cache::forget('episodes_' . md5('podcast_id=' . $episode->podcast_id));
 
@@ -153,8 +154,6 @@ class EpisodeController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-
-        //povecaj broj preslusavanja
         $episode->increment('play_count');
 
         $filePath = storage_path('app/public/' . $episode->audio_path);
@@ -163,13 +162,13 @@ class EpisodeController extends Controller
         }
 
         $extension = pathinfo($filePath, PATHINFO_EXTENSION);
-        $mimeType = match(strtolower($extension)) {
+        $mimeType = match (strtolower($extension)) {
             'mp3' => 'audio/mpeg',
             'wav' => 'audio/wav',
             default => 'application/octet-stream',
         };
 
-        return response()->stream(function() use ($filePath) {
+        return response()->stream(function () use ($filePath) {
             readfile($filePath);
         }, 200, [
             'Content-Type' => $mimeType,
@@ -178,26 +177,27 @@ class EpisodeController extends Controller
             'Accept-Ranges' => 'bytes'
         ]);
     }
+
     public function episodesByMonth()
     {
         $data = Episode::select(
             DB::raw("DATE_FORMAT(release_date, '%Y-%m') as month"),
             DB::raw('COUNT(*) as total')
         )
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get();
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
 
         return response()->json($data);
     }
 
     public function topEpisodes($limit = 10)
     {
-        $episodes = Episode::with('podcast')
+        $episodes = Episode::with('podcast.user')
             ->orderByDesc('play_count')
             ->take($limit)
             ->get();
 
-        return response()->json($episodes);
+        return EpisodeResource::collection($episodes);
     }
 }
