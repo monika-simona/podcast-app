@@ -10,8 +10,8 @@ class ITunesController extends Controller
 {
     public function search(Request $request)
     {
-        $term = $request->query('term', 'podcast'); // podrazumevani pojam
-        $limit = $request->query('limit', 10);      // koliko rezultata da vrati
+        $term = $request->query('term', 'podcast');
+        $limit = $request->query('limit', 10);
 
         $response = Http::get('https://itunes.apple.com/search', [
             'term' => $term,

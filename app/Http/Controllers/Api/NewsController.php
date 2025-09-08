@@ -16,15 +16,14 @@ class NewsController extends Controller
         $category = $request->query('category');
         $apiKey = env('NEWSAPI_KEY');
 
-        // Prešli smo na "everything" endpoint jer vraća više rezultata
         $url = 'https://newsapi.org/v2/everything';
 
         $params = [
             'apiKey' => $apiKey,
             'q' => $query,
             'pageSize' => 10,
-            'language' => 'en', // možeš staviti 'sr' ali nema mnogo srpskih izvora
-            'sortBy' => 'relevancy', // ili 'publishedAt'
+            'language' => 'en',
+            'sortBy' => 'relevancy',
         ];
 
         $response = Http::get($url, $params);
@@ -37,7 +36,6 @@ class NewsController extends Controller
 
         $articles = $response->json()['articles'] ?? [];
 
-        // Dohvati povezane epizode sa eager-loaded podcast i transformiši kroz resource
         $relatedEpisodes = Episode::with('podcast')
             ->where('title', 'like', "%{$query}%")
             ->orWhere('description', 'like', "%{$query}%")
