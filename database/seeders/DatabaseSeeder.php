@@ -11,9 +11,6 @@ use App\Models\Episode;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         //KREIRANJE 5 KORISNIKA PO ULOGAMA
@@ -21,10 +18,8 @@ class DatabaseSeeder extends Seeder
         User::factory()->count(3)->author()->create();
         User::factory()->count(10)->user()->create();
 
-
         // KREIRANJE PODKASTA ZA AUTORE
         Podcast::factory()->count(20)->create();
-
 
         //KREIRANJE EPIZODE ZA PODKSATE
         Podcast::all()->each(function ($podcast) {

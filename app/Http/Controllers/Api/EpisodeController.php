@@ -40,10 +40,6 @@ class EpisodeController extends Controller
 
     public function store(Request $request)
     {
-        if (auth()->user()->role !== 'author' && auth()->user()->role !== 'admin') {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
         $validated = $request->validate([
             'podcast_id' => 'required|exists:podcasts,id',
             'title' => 'required|string|max:255',

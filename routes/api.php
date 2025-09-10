@@ -57,8 +57,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     // Resource rute
     Route::apiResource('users', UserController::class)->only(['index', 'store', 'destroy']);
 
-    // Dodatna ruta za promenu uloge
-    Route::put('users/{id}/role', [AdminUserController::class, 'updateRole']);
 });
 
 
