@@ -33,7 +33,7 @@ class PodcastController extends Controller
             return $query->paginate($perPage);
         });
 
-        return PodcastResource::collection($podcasts);
+        return PodcastResource::collection($podcasts)->response()->getData(true);
     }
 
     public function store(Request $request)

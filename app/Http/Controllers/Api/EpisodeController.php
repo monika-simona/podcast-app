@@ -35,7 +35,7 @@ class EpisodeController extends Controller
         $perPage = $request->get('per_page', 5);
         $episodes = $query->paginate($perPage);
 
-        return EpisodeResource::collection($episodes);
+        return EpisodeResource::collection($episodes)->response()->getData(true);
     }
 
     public function store(Request $request)

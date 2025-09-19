@@ -55,6 +55,6 @@ class TagController extends Controller
 
         $episodes = $query->paginate($perPage);
 
-        return EpisodeResource::collection($episodes);
+        return EpisodeResource::collection($episodes)->response()->getData(true);
     }
 }

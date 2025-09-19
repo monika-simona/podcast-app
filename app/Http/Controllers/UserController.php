@@ -24,7 +24,7 @@ class UserController extends Controller
 
         $users = $query->paginate($perPage);
 
-        return UserResource::collection($users);
+        return UserResource::collection($users)->response()->getData(true);
     }
 
     public function store(Request $request)
